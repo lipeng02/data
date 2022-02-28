@@ -1,8 +1,10 @@
 package com.sansi.data.service;
 
+import com.alibaba.fastjson.JSONObject;
 import com.sansi.data.config.JMSConfig;
 import com.sansi.data.config.MqttConfiguration;
-import com.sansi.data.utils.DataFormat;
+import com.sansi.data.utils.DataParser;
+import lombok.extern.slf4j.Slf4j;
 import org.eclipse.paho.client.mqttv3.*;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,18 +13,24 @@ import org.springframework.context.annotation.Configuration;
 
 import javax.annotation.Resource;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * MQTT消费端
  */
+@Slf4j
 @Configuration
 public class MqttConsumer {
+    public String topicJ = null;
+    //封装dtu数据和topic
+    Map map = new HashMap();
     @Resource
     private JMSConfig jmsConfig;
-
     @Resource
     private JMSProducer jmsProducer;
-
+    @Autowired
+    private DataParser dataParser;
     @Autowired
     private MqttConfiguration mqttProperties;
 
@@ -40,16 +48,31 @@ public class MqttConsumer {
             connOpts.setCleanSession(true);
             connOpts.setUserName(mqttProperties.getUsername());
             connOpts.setPassword(mqttProperties.getPassword().toCharArray());
-            System.out.println("Connecting to broker:" + broker);
             sampleClient.connect(connOpts);
-            System.out.println("Connected");
+            log.info("Connected to broker: {}" ,broker);
 
-            String[] topics = mqttProperties.getTopics().split(",");
+            String[] topics = mqttProperties.getTopics();
             sampleClient.subscribe(topics);
             sampleClient.setCallback(new MqttCallback() {
                 public void messageArrived(String topic, MqttMessage message) throws Exception {
-                    byte[] payload = message.getPayload();
-                    jmsProducer.sendMessage(jmsConfig.topic(), payload);
+                    //昆仑通泰
+                    if (topic.startsWith("j")) {
+                        topicJ = topic;
+                        JSONObject jsonObject = JSONObject.parseObject(message.toString());
+                        dataParser.parseData(jsonObject);
+                    } else {
+                        byte[] payload = message.getPayload();
+                        map.put("topic", topic);
+                        map.put("payload", payload);
+                        // 李希文塔机防碰撞210字节的数据截取掉后十个字节
+                        if (payload.length == 210) {
+                            byte[] bytes = Arrays.copyOf(payload, payload.length - 10);
+                            map.put("payload", bytes);
+                            jmsProducer.sendMessage(jmsConfig.topic(), map);
+                        } else {
+                            jmsProducer.sendMessage(jmsConfig.topic(), map);
+                        }
+                    }
                 }
 
                 public void deliveryComplete(IMqttDeliveryToken token) {
@@ -60,11 +83,6 @@ public class MqttConsumer {
             });
 
         } catch (MqttException me) {
-            System.out.println("reason" + me.getReasonCode());
-            System.out.println("msg" + me.getMessage());
-            System.out.println("loc" + me.getLocalizedMessage());
-            System.out.println("cause" + me.getCause());
-            System.out.println("excep" + me);
             me.printStackTrace();
         }
         return true;

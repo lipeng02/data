@@ -17,11 +17,14 @@ public class RedisConfig {
     @Bean
     public RedisTemplate<String, Object> redisTemplate(LettuceConnectionFactory redisConnectionFactory) {
         RedisTemplate<String, Object> redisTemplate = new RedisTemplate<String, Object>();
+        // 设置序列化Key的实例化对象
         redisTemplate.setKeySerializer(new StringRedisSerializer());
+        // 设置序列化Value的实例化对象
         redisTemplate.setValueSerializer(new GenericJackson2JsonRedisSerializer());
         redisTemplate.setHashKeySerializer(new StringRedisSerializer());
         redisTemplate.setHashValueSerializer(new GenericJackson2JsonRedisSerializer());
         redisTemplate.setConnectionFactory(redisConnectionFactory);
+        redisTemplate.afterPropertiesSet();
         return redisTemplate;
     }
 }

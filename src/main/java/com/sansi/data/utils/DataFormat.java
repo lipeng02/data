@@ -3,6 +3,8 @@ package com.sansi.data.utils;
 import com.google.common.base.Converter;
 import org.springframework.stereotype.Component;
 
+import java.sql.Timestamp;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -15,6 +17,7 @@ import java.util.Date;
 public class DataFormat {
 
     private static String hexStr = "0123456789ABCDEF";
+    private static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     /**
      * 查表法计算CRC16校验
@@ -83,7 +86,7 @@ public class DataFormat {
     /**
      * @return 将十六进制数组转换为十进制数组
      */
-    public static int[] HexArrToInt(String[] strArr) {
+    public static int[] hexArrToInt(String[] strArr) {
         int[] ints = new int[strArr.length];
         for (int i = 0; i < strArr.length; i++) {
             int parseInt = Integer.parseInt(strArr[i], 16);
@@ -95,7 +98,7 @@ public class DataFormat {
     /**
      * @return 将十六进制数组转换为byte数组
      */
-    public static byte[] HexArrToByte(String[] strArr) {
+    public static byte[] hexArrToByte(String[] strArr) {
         byte[] bytes = new byte[strArr.length];
         for (int i = 0; i < strArr.length; i++) {
             byte parseInt = (byte) Integer.parseInt(strArr[i], 16);
@@ -107,7 +110,7 @@ public class DataFormat {
     /**
      * 字符串转换成16进制字符串数组
      */
-    public static String[] Msg2Hex(String str) {
+    public static String[] msg2Hex(String str) {
         String[] strings = str.split(",");
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < strings.length; i++) {
@@ -125,9 +128,21 @@ public class DataFormat {
     }
 
     /**
+     * 字符串转换成16进制字符串数组
+     */
+    public static String[] strToHexArr(String str) {
+        char[] charArr = str.toCharArray();
+        String[] strArr = new String[charArr.length/2];
+        for (int i = 0; i < charArr.length; i+=2) {
+            strArr[i/2] = ""+charArr[i]+charArr[i+1];
+        }
+        return strArr;
+    }
+
+    /**
      * 十进制转2进制并补足0,返回数组
      */
-    public static String[] DecToBin(int dec) {
+    public static String[] decToBin(int dec) {
         String binaryString = Integer.toBinaryString(dec);
         String bs = String.format("%08d", Integer.valueOf(binaryString));
         String[] split = bs.split("");
@@ -137,9 +152,8 @@ public class DataFormat {
     /**
      * 对当前时间进行格式化
      */
-    public static String DateFormat(Date date) {
-        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        String format = formatter.format(date);
+    public static String dateFormat(Date date) {
+        String format = dateFormat.format(date);
         return format;
     }
 
@@ -244,4 +258,5 @@ public class DataFormat {
         CRC_OUT = ((crc_high & 0x00ff) << 8) | (crc_low & 0x00ff) & 0xffff;
         return CRC_OUT;
     }
+
 }
